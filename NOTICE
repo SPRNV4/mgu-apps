@@ -1,0 +1,17 @@
+mgu-apps - third-party parts and what is not included
+
+Included
+- kit/ (the app runtime, build and emulator tools), deploy/mgu-app-install.sh, deploy/mainapp-patch.js:
+  from idrive7-apps (https://github.com/cauliflowermossgrape/idrive7-apps), MIT, Copyright (c) 2026
+  cauliflowermossgrape and contributors.
+- kit/runtime/fonts/*.json: glyph atlases rendered from the Ubuntu font family (Ubuntu Font Licence 1.0);
+  cjk.json from Noto Sans SC (SIL Open Font License 1.1, kit/runtime/fonts/OFL-NotoSansSC.txt).
+- apps/cluster_nav_card/cluster_render_client.js: the cluster render service's Node client from
+  robertnisipeanu/idrive-apps (native/cluster-render), Copyright (C) 2026 Robert Nisipeanu, Mozilla Public
+  License 2.0, unchanged (its header says so).
+
+Not included, on purpose
+- BMW's app SDK (oap-sdk/) and the head unit's SOME/IP interface catalog (reference/): extracted from your own
+  head unit, never distributed.
+- Waze on cluster (robertnisipeanu/idrive-apps, GPL-3.0): Cluster Nav Card (apps/cluster_nav_card) runs beside it and reads the file it
+  writes (/run/waze-on-cluster/status.json); none of its code is here.

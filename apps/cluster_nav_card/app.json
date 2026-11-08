@@ -1,0 +1,309 @@
+{
+  "id": "cluster_nav_card",
+  "title": "Cluster Nav Card",
+  "description": "A turn card over the phone's map in the instrument cluster, in the style of a navigation app: the next turn's arrow, the distance to it, the road and the lanes. Guidance from the head unit's navigation (CarPlay or Android Auto guiding, or BMW's own route), a file another program writes, or a demo drive. Waze isn't supported: it sends the car no guidance. Needs Waze on cluster and the cluster render service (eroobeeroo/idrive-apps)",
+  "version": "0.9.0",
+  "vendor": "custom",
+  "loggingId": "OAA4",
+  "iconGlyph": "navcard",
+  "signals": {
+    "de.bmw.infotainment.navigation.guiding.Guidance": {
+      "_instances": "Main_Instance",
+      "_optional": "the head unit's turn-by-turn guidance; the card then takes it only from the guidance file or the demo",
+      "guidanceState": "rs",
+      "guidingProvider": "rs",
+      "conclusiveDart": "rs",
+      "currentLaneGuiding": "rs",
+      "nextIntersection": "rs",
+      "finalDestinationInfo": "rs"
+    },
+    "de.bmw.infotainment.a4a.carplay.CarPlayManager": {
+      "_instances": "CarPlayManagerInst1",
+      "_optional": "whether the phone sends turn data; the app's page then cannot say so",
+      "projectedGuidanceMetadataAvailable": "rs",
+      "projectedGuidanceActive": "rs"
+    },
+    "de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding": {
+      "_instances": "Main_Instance",
+      "_optional": "diagnostics: what the phone hands the navigation",
+      "activeRouteChange": "rs",
+      "currentRoad": "rs",
+      "currentLaneGuiding": "rs",
+      "waypoints": "rs"
+    },
+    "de.bmw.infotainment.navigation.guiding.GuidanceEventList": {
+      "_instances": "Main_Instance",
+      "_optional": "the navigation's list of the route's events: the phone's turns when Guidance has none",
+      "_methods": [
+        "queryContent"
+      ]
+    },
+    "de.bmw.infotainment.navigation.externalize.adasng.CCP": {
+      "_instances": "1",
+      "_optional": "the car's traffic side and country, for a roundabout's way round when the navigation does not say",
+      "countryCode": "rs",
+      "_broadcasts": [
+        "trafficSide"
+      ]
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Cluster Nav Card",
+      "buttons": [
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "show",
+      "label": "Card in the cluster",
+      "type": "choice",
+      "default": "cluster",
+      "options": [
+        [
+          "cluster",
+          "Over the map, while there is a route"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "place",
+      "label": "Card position",
+      "type": "choice",
+      "default": "topCenter",
+      "options": [
+        [
+          "topCenter",
+          "Top centre of the map"
+        ],
+        [
+          "topLeft",
+          "Top left of the map"
+        ],
+        [
+          "topRight",
+          "Top right of the map"
+        ]
+      ]
+    },
+    {
+      "key": "vpos",
+      "label": "Card height",
+      "type": "choice",
+      "default": "badge",
+      "options": [
+        [
+          "badge",
+          "Under the cluster's model badge"
+        ],
+        [
+          "top",
+          "At the top of the map"
+        ],
+        [
+          "low",
+          "Lower, under BMW's own turn box"
+        ]
+      ]
+    },
+    {
+      "key": "size",
+      "label": "Card size",
+      "type": "choice",
+      "default": "normal",
+      "options": [
+        [
+          "small",
+          "Small"
+        ],
+        [
+          "normal",
+          "Normal"
+        ],
+        [
+          "large",
+          "Large"
+        ]
+      ]
+    },
+    {
+      "key": "width",
+      "label": "Card width",
+      "type": "choice",
+      "default": "fixed",
+      "options": [
+        [
+          "fixed",
+          "Standard (the same for every road)"
+        ],
+        [
+          "fit",
+          "Fit the text"
+        ]
+      ]
+    },
+    {
+      "key": "units",
+      "label": "Distances",
+      "type": "choice",
+      "default": "metric",
+      "options": [
+        [
+          "metric",
+          "Metres, kilometres"
+        ],
+        [
+          "imperial",
+          "Feet, miles"
+        ]
+      ]
+    },
+    {
+      "key": "shields",
+      "label": "Road number plates",
+      "type": "choice",
+      "default": "nl",
+      "options": [
+        [
+          "nl",
+          "Netherlands (A red, N yellow, s-routes)"
+        ],
+        [
+          "de",
+          "Germany (A blue, B yellow)"
+        ],
+        [
+          "fr",
+          "France (A, N red; D yellow)"
+        ],
+        [
+          "uk",
+          "United Kingdom (M blue, A green)"
+        ],
+        [
+          "generic",
+          "Plain chips (E-roads green)"
+        ]
+      ]
+    },
+    {
+      "key": "trafficSide",
+      "label": "Traffic side",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatic (the navigation, then where the car is)"
+        ],
+        [
+          "right",
+          "Right-hand traffic"
+        ],
+        [
+          "left",
+          "Left-hand traffic"
+        ]
+      ]
+    },
+    {
+      "key": "provider",
+      "label": "Guidance from",
+      "type": "choice",
+      "default": "phone",
+      "options": [
+        [
+          "phone",
+          "The phone (CarPlay, Android Auto)"
+        ],
+        [
+          "any",
+          "Also the BMW navigation's route"
+        ]
+      ]
+    },
+    {
+      "key": "demoRoute",
+      "label": "Demo route",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "Off · guidance from the car or the guidance file"
+        ],
+        [
+          "on",
+          "On · a demo drive on the card"
+        ]
+      ]
+    },
+    {
+      "key": "eventLog",
+      "label": "Event log",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On · the navigation's answers to data/cluster_nav_card-events.jsonl"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "theme",
+      "label": "Colour theme",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Red"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Ice White"
+        ],
+        [
+          "amber",
+          "Night Amber"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Renderer",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU 60 fps (default)"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    }
+  ]
+}

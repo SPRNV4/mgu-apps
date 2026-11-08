@@ -1,0 +1,16 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  cluster_nav_card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # the card, the guidance sources, the cluster overlay. The package itself needs BMW's oap-sdk, which is
+      # not in the repository.
+      - run: node kit/tools/test_cluster_nav_card.js
+      - run: sh -n deploy/mgu-app-install.sh

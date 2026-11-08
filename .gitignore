@@ -1,0 +1,13 @@
+# BMW's own files: extracted from your head unit, never in the repository
+/oap-sdk
+/reference/
+
+# build output
+/dist/
+__pycache__/
+node_modules/
+.DS_Store
+.idea/
+
+# from your car, not to be shared: Cluster Nav Card's event logs (your routes)
+*nav_card-events*.jsonl
