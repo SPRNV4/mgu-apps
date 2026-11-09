@@ -74,6 +74,18 @@ const { Recorder } = require('../runtime/record');
         assert.strictEqual(CC.solid('#ffffff', '#123456'), '#ffffff');
         assert.strictEqual(CC.solid('#ffffff80', 'nope'), '#ffffff80');
     }
+    // codes apart by a space, and the exit's number after them (the Dutch motorway signs)
+    assert.deepStrictEqual(SHL.split('A4 E19 Den Haag'), { shields: ['A4', 'E19'], name: 'Den Haag' });
+    assert.deepStrictEqual(SHL.split('a-4 e-19 Den Haag'), { shields: ['A4', 'E19'], name: 'Den Haag' });
+    assert.deepStrictEqual(SHL.split('A4 E19 3 Leiden'), { shields: ['A4', 'E19', 'exit:3'], name: 'Leiden' });
+    assert.deepStrictEqual(SHL.split('3 Leiden'), { shields: ['exit:3'], name: 'Leiden' });
+    assert.deepStrictEqual(SHL.split('8a Schiphol'), { shields: ['exit:8a'], name: 'Schiphol' });
+    assert.deepStrictEqual(SHL.split('Exit 12 Rotterdam'), { shields: ['exit:12'], name: 'Rotterdam' });
+    assert.deepStrictEqual(SHL.split('1e Jan Steenstraat'), { shields: [], name: '1e Jan Steenstraat' });   // an ordinal
+    assert.deepStrictEqual(SHL.split('2de Hugo de Grootstraat'), { shields: [], name: '2de Hugo de Grootstraat' });
+    assert.deepStrictEqual(SHL.split('A10 Ring Zuid'), { shields: ['A10'], name: 'Ring Zuid' });
+    assert.strictEqual(SHL.style('exit:3', 'de').shape, 'exit');
+    assert.deepStrictEqual(require('../../apps/cluster_nav_card/card').roadOf({ road: '13 Den Haag', shields: ['A4'] }), { shields: ['A4', 'exit:13'], name: 'Den Haag' });
     assert.deepStrictEqual(SHL.split('Ab Straat'), { shields: [], name: 'Ab Straat' });       // no digits: a name
     assert.strictEqual(SHL.style('A4', 'nl').bg, '#c8102e');
     assert.strictEqual(SHL.style('A4', 'de').bg, '#1f5aa6');
@@ -136,10 +148,15 @@ const { Recorder } = require('../runtime/record');
     assert.strictEqual(HU.fromDart({ maneuver: { destinationManeuver: panel({}) } }).maneuver, 'arrive');
     assert.strictEqual(HU.fromDart({ maneuver: { tunnel: panel({}) } }), null);           // not a manoeuvre
     assert.strictEqual(HU.fromDart(null), null);
-    r = HU.fromDart({ maneuver: { roundabout: panel({ exitAngle: 180, exitNumber: 2, driveDirection: 2 }) } });
-    assert.deepStrictEqual([r.maneuver, r.turnDeg], ['roundabout', 0]);                     // straight on
+    // exitAngle: the change of heading, clockwise (seen in the Netherlands: straight on came as 300-325)
+    r = HU.fromDart({ maneuver: { roundabout: panel({ exitAngle: 315, exitNumber: 2, driveDirection: 2 }) } });
+    assert.deepStrictEqual([r.maneuver, r.turnDeg], ['roundabout', -45]);                   // on, bending a little left
+    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 325, driveDirection: 'RIGHT' }), -35);
     assert.strictEqual(HU.roundaboutTurn({ exitAngle: 90, driveDirection: 'RIGHT' }), 90);  // the first right
-    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 90, driveDirection: 'LEFT' }), -90);  // driving on the left
+    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 270, driveDirection: 'RIGHT' }), -90); // left
+    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 180, driveDirection: 'RIGHT' }), 180); // back
+    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 360, driveDirection: 'RIGHT' }), 0);   // straight on
+    assert.strictEqual(HU.roundaboutTurn({ exitAngle: 90, driveDirection: 'LEFT' }), 90);   // the side: only the way round
     assert.strictEqual(HU.roundaboutTurn({ exitAngle: 0, exitNumber: 3, driveDirection: 2 }), -90);  // no angle: the number
     // the traffic side for a roundabout: the setting, then the navigation's own, then the car's position
     assert.deepStrictEqual(['GB', 'GBR', 'ie', 'NL', 'NLD', 'DE', ''].map(HU.sideOfCountry), ['LEFT', 'LEFT', 'LEFT', 'RIGHT', 'RIGHT', 'RIGHT', '']);
@@ -147,7 +164,7 @@ const { Recorder } = require('../runtime/record');
     let rr = HU.sideFor(rb('RIGHT'), 'LEFT', '');
     assert.deepStrictEqual([rr.turnDeg, rr.clockwise, rr.sideSrc], [90, false, 'navigation']);     // Google's own: right-hand
     rr = HU.sideFor(rb(undefined), 'LEFT', '');
-    assert.deepStrictEqual([rr.turnDeg, rr.clockwise, rr.sideSrc], [-90, true, 'car position']);    // none: the car's (UK)
+    assert.deepStrictEqual([rr.turnDeg, rr.clockwise, rr.sideSrc], [90, true, 'car position']);     // none: the car's (UK)
     rr = HU.sideFor(rb(undefined), '', '');
     assert.deepStrictEqual([rr.turnDeg, rr.clockwise, rr.sideSrc], [90, false, 'default']);
     rr = HU.sideFor(rb('RIGHT'), 'RIGHT', 'LEFT');

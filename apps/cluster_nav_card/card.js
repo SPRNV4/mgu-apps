@@ -240,7 +240,10 @@ const CHIP = { bg: COL.chip, fg: COL.text, ring: COL.chip };
 function roadOf(g) {
     const sp = SH.split(g.road);
     const given = g.shields && g.shields.length ? g.shields : g.shield ? [g.shield] : null;
-    return { shields: (given ? given.map(SH.norm) : sp.shields).slice(0, 3), name: given ? String(g.road || '') : sp.name };
+    if (!given) return { shields: sp.shields.slice(0, 4), name: sp.name };
+    // the car's own plates, then maybe the exit's number at the start of the name
+    const shields = given.map(SH.norm).slice(0, 3), ex = SH.exitOf(g.road);
+    return ex ? { shields: shields.concat([SH.EXIT_PREFIX + ex.exit]), name: ex.name } : { shields, name: String(g.road || '') };
 }
 
 /**

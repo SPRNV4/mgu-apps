@@ -5,7 +5,8 @@
  * digits, as on the plates). Drawn, not pictures: the kit's canvas draws no SVG, and a picture for every number
  * would be thousands. The styles follow the official plates' look by eye (colour, ring, text colour).
  *
- *   split(text)             -> { shields: ['A4', 'E19'], name } the road numbers at the start of a road's text
+ *   split(text)             -> { shields: ['A4', 'E19'], name } the road numbers at the start of a road's text;
+ *                              an exit number after them ("A4 E19 3 Leiden") as 'exit:3', drawn as the exit's plate
  *   norm(code)              -> the number as the plates write it ('A-4' -> 'A4', 'e-19' -> 'E19')
  *   style(code, region)     -> the plate's colours, or null (then the card's own chip)
  *   width(cv, code, h)      the plate's width at height h
@@ -30,7 +31,20 @@ const REGIONS = Object.keys(STYLES);
 // a road number: one or two letters, maybe a hyphen, then 1-3 digits and maybe a letter (A4, N201, E19, s111,
 // A10a; A-4, e-19 as some names have them)
 const CODE = '(?:[A-Za-z]{1,2}-?\\d{1,3}[a-z]?)';
-const LEAD = new RegExp('^(towards\\s+|richting\\s+|via\\s+)?(' + CODE + '(?:\\s*[/,;]\\s*' + CODE + ')*)(?=$|[\\s,/;:-])[\\s,/;:-]*(.*)$');
+// codes apart by / , ; or just a space ("A4 E19", "a-4 e-19")
+const SEP = '(?:\\s*[/,;]\\s*|\\s+)';
+const LEAD = new RegExp('^(towards\\s+|richting\\s+|via\\s+)?(' + CODE + '(?:' + SEP + CODE + ')*)(?=$|[\\s,/;:-])[\\s,/;:-]*(.*)$');
+// an exit's number at the start of a name, on a motorway ("3 Leiden", "8a", "Exit 12 ..."): 1-3 digits and maybe a
+// letter - not a Dutch ordinal ("1e Jan Steenstraat", "2de ...", "3e ..."), whose e / de / ste goes with the number
+const EXIT = /^(?:(?:exit|afrit|ausfahrt|sortie|junction)\s+)?(\d{1,3}[a-df-z]?)(?=$|[\s,:-])[\s,:-]*(.*)$/i;
+const EXIT_PREFIX = 'exit:';
+const isExit = (code) => String(code).indexOf(EXIT_PREFIX) === 0;
+
+/** The exit's number at the start of a name, and the rest: { exit: '3', name: 'Leiden' }, or null. */
+function exitOf(name) {
+    const m = EXIT.exec(String(name || '').trim());
+    return m ? { exit: m[1].toLowerCase(), name: m[2].replace(/\s+/g, ' ').trim() } : null;
+}
 
 /**
  * A road number as the plates write it: no hyphen, the letters upper case ("A-4" -> "A4", "e-19" -> "E19") -
@@ -47,15 +61,21 @@ function norm(code) {
 function split(text) {
     const t = String(text || '').trim();
     const m = LEAD.exec(t);
-    if (!m) return { shields: [], name: t };
-    const shields = m[2].split(/\s*[/,;]\s*/).filter(Boolean).slice(0, 3).map(norm);
-    return { shields, name: ((m[1] || '') + m[3]).replace(/\s+/g, ' ').trim() };
+    const shields = m ? m[2].split(/\s*[/,;]\s*|\s+/).filter(Boolean).slice(0, 3).map(norm) : [];
+    let name = m ? m[3] : t;
+    const ex = exitOf(name);
+    if (ex) { shields.push(EXIT_PREFIX + ex.exit); name = ex.name; }
+    return { shields, name: ((m && m[1] || '') + name).replace(/\s+/g, ' ').trim() };
 }
 
 /** The road class: its letters, upper case ("A" for A4, "s" stays apart from S as Amsterdam's s-routes do). */
 const classOf = (code) => (/^[A-Za-z]+/.exec(code) || [''])[0];
 
+// the exit's plate, as the Dutch motorway signs: blue, a white ring, the exit pictogram, the number
+const EXIT_PLATE = { bg: '#1f4ab4', fg: WHITE, ring: WHITE, shape: 'exit' };
+
 function style(code, region) {
+    if (isExit(code)) return EXIT_PLATE;
     const cls = classOf(code), set = STYLES[region] || STYLES.generic;
     return set[cls] || (cls === 'E' ? E : null);
 }
@@ -68,7 +88,9 @@ const textW = (cv, code, h) => { const fs = fontOf(h), [a, b] = parts(code); ret
 /** The pad either side of the text: more for the octagon, whose slanted ends take room. */
 const padOf = (st, h) => (st && st.shape === 'octagon' ? h * 0.44 : h * 0.31);
 
+const exitPic = (h) => h * 0.6;                                    // the pictogram's height (its width: PIC_W times)
 function width(cv, code, h, region) {
+    if (isExit(code)) return Math.round(h * 0.3 + exitPic(h) * PIC_W + h * 0.2 + cv.textWidth(code.slice(EXIT_PREFIX.length), fontOf(h), { font: 'bold' }) + h * 0.3);
     return Math.round(textW(cv, code, h) + 2 * padOf(style(code, region), h));
 }
 
@@ -83,9 +105,42 @@ function octagon(cv, x, y, w, h, c, col) {
     cv.quad([[x + w - c, y], [x + w, y + c], [x + w, y + h - c], [x + w - c, y + h]], col);
 }
 
+/**
+ * The exit pictogram in the box x, y, (PIC_W * s) x s, as on the Dutch signs: the motorway's two lanes running up
+ * into the distance, and the exit leaving the right one with a big arrow head aimed up and right. Measured off a
+ * sign: 1.44 times as wide as tall. Quads only (the GPU recorder's shapes).
+ */
+const PIC_W = 1.44;
+function exitPictogram(cv, x, y, s, col) {
+    const P = (u, v) => [x + u * s, y + v * s];
+    // the left lane: a wide foot, the outer edge leaning in hard, the inner one upright
+    cv.quad([P(0, 1), P(0.48, 1), P(0.48, 0), P(0.34, 0)], col);
+    // the right lane: upright on the inside, widening out to the right as it comes down
+    cv.quad([P(0.55, 1), P(1.0, 1), P(1.0, 0.5), P(0.55, 0.5)], col);
+    cv.quad([P(0.55, 0.52), P(0.55, 0), P(0.67, 0), P(0.9, 0.52)], col);
+    // the exit: out of the right lane, up and to the right, and its head (a right angle, the tip in the corner)
+    const pts = [];
+    for (let i = 0; i <= 10; i++) {
+        const u = i / 10, a = [0.86, 0.74], b = [0.9, 0.4], c = [1.16, 0.22];
+        pts.push(P((1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * b[0] + u * u * c[0], (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * b[1] + u * u * c[1]));
+    }
+    cv.polyline(pts, s * 0.24, col);
+    cv.quad([P(1.44, 0), P(1.44, 0), P(0.98, 0), P(1.44, 0.46)], col);
+}
+
 function draw(cv, code, x, y, h, region, fallback) {
     const st = style(code, region) || fallback;
     const w = width(cv, code, h, region);
+    if (st.shape === 'exit') {
+        const r = h * 0.16, e = Math.max(1, h * 0.08), rg = Math.max(1.2, h * 0.055);
+        cv.roundRect(x, y, w, h, r, st.bg);
+        cv.roundRect(x + e, y + e, w - 2 * e, h - 2 * e, Math.max(1, r - e), st.ring);
+        cv.roundRect(x + e + rg, y + e + rg, w - 2 * (e + rg), h - 2 * (e + rg), Math.max(1, r - e - rg), st.bg);
+        const p = exitPic(h), px = x + h * 0.3;
+        exitPictogram(cv, px, y + (h - p) / 2, p, st.fg);
+        cv.text(code.slice(EXIT_PREFIX.length), px + p * PIC_W + h * 0.2, y + h * 0.75, fontOf(h), st.fg, { font: 'bold' });
+        return w;
+    }
     if (st.shape === 'octagon') {
         // as the s-route signs: a thin grey edge, a white rim, a thick black ring, the white field
         const c = h * 0.27, e = Math.max(1, h * 0.03), rim = Math.max(1, h * 0.06), ring = Math.max(1.5, h * 0.11);
@@ -110,4 +165,4 @@ function draw(cv, code, x, y, h, region, fallback) {
     return w;
 }
 
-module.exports = { split, norm, style, width, draw, classOf, STYLES, REGIONS };
+module.exports = { split, norm, exitOf, isExit, EXIT_PREFIX, style, width, draw, classOf, STYLES, REGIONS };

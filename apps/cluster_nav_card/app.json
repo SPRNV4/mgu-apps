@@ -2,7 +2,7 @@
   "id": "cluster_nav_card",
   "title": "Cluster Nav Card",
   "description": "A turn card over the phone's map in the instrument cluster, in the style of a navigation app: the next turn's arrow, the distance to it, the road and the lanes. Guidance from the head unit's navigation (CarPlay or Android Auto guiding, or BMW's own route), a file another program writes, or a demo drive. Waze isn't supported: it sends the car no guidance. Needs Waze on cluster and the cluster render service (eroobeeroo/idrive-apps)",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "vendor": "custom",
   "loggingId": "OAA4",
   "iconGlyph": "navcard",

@@ -123,8 +123,11 @@ function describe(d) {
  * ring (exitAngle, read as degrees from the way in, in the direction of travel) or else the exit number.
  */
 function roundaboutTurn(r) {
+    // exitAngle: the change of heading from the way in to the way out, clockwise, 0..359 - 90 right, 270 left,
+    // 180 back; "straight on" through a Dutch roundabout came as 300-325 (on, bending a little left). Not the
+    // way round the ring, so the traffic side doesn't change it. Seen 2026-11-09 (Google Maps over CarPlay).
     const ang = Number(r.exitAngle), ccw = en(r.driveDirection, SIDE) !== 'LEFT';   // RIGHT-hand traffic goes round counter-clockwise
-    if (isFinite(ang) && ang > 0 && ang <= 360) return ccw ? 180 - ang : ang - 180;
+    if (isFinite(ang) && ang > 0 && ang <= 360) { const d = ang % 360; return d > 180 ? d - 360 : d; }
     const n = Math.max(1, Math.min(4, Number(r.exitNumber) || 2));
     return [90, 0, -90, 180][n - 1] * (ccw ? 1 : -1);
 }

@@ -18,7 +18,7 @@ It was called Nav Card (`nav_card`) up to 0.8.8. The new id is another app to th
 |---|---|
 | `card.js` | Draws the card. It scales to any size and draws the same on the GPU recorder and the software canvas. Manoeuvres: straight, left / right, slight, sharp, U-turn, merge, exit, roundabout (exit 1–4), arrive. |
 | `source.js` | Where the guidance comes from: the car's navigation, the guidance file, or a demo drive (below). |
-| `shields.js` | Road numbers on plates styled the way each country signs them (A4 red in the Netherlands, blue in Germany; E-roads green), for any number; "A-4", "e-19" are read as A4, E19. |
+| `shields.js` | Road numbers on plates styled the way each country signs them (A4 red in the Netherlands, blue in Germany; E-roads green), for any number; "A-4", "e-19" are read as A4, E19; an exit's number gets the blue exit plate. |
 | `headunit.js` | Reads the head unit navigation's turn-by-turn guidance, CarPlay's included, over SOME/IP. |
 | `overlay.js` | The card's layer in the cluster, over the map that Waze on cluster shows. |
 | `main.js` | The app's page: the card as it is now, larger, and what each part found. |
@@ -62,7 +62,10 @@ page when the phone sends no turn data.
 All of this comes from the unit's interface catalog and has **not been seen on a car yet**. How
 the native module hands over unions and enums is taken from the Service app: unions come as
 `{ member: value }`, enums as numbers or names, and both are read. The roundabout's `exitAngle` is read
-as the angle driven round the ring; without it, the exit number is used. On a drive, the first three
+as the change of heading from the way in to the way out, clockwise: 90 right, 270 left, 180 back. Going
+straight on through Dutch roundabouts it came as 300–325 (on, bending a little left); read as the angle
+driven round the ring, as before 0.9.1, that drew a sharp turn back. The traffic side only sets which way
+round the ring is drawn. Without an angle, the exit number is used. On a drive, the first three
 values of each field go to the app's log (`headunit conclusiveDart #1: ...`), and the latest ones to
 `/dev/shm/nav-card/headunit-raw.json`. Those are what to send back if a manoeuvre or the lanes come
 out wrong.
@@ -135,12 +138,17 @@ of them that take the route. The car's guidance comes first; the file is used wh
 
 ## Road numbers
 
-The numbers at the start of a road's text ("A4 Den Haag", "A10 / E19 Ring Zuid", "s111 Spaklerweg"), or
+The numbers at the start of a road's text ("A4 Den Haag", "A10 / E19 Ring Zuid", "A4 E19 Leiden",
+"a-4 e-19", "s111 Spaklerweg"), or
 the description's icon texts, go on plates in front of the name. Each one is styled by its letters and the
 **Road number plates** setting. The plates are drawn, not pictures, so they work for any number: the
 kit's canvas draws no SVG, and the sign files on Wikimedia Commons would mean a picture for every number.
 In the Netherlands, the cities' s-routes (s111) get their own plate: a white elongated octagon with a thick
 black ring. A number no style covers gets the card's green chip.
+
+An exit's number at the start of the name, after any road numbers ("3 Leiden", "A4 E19 3 Leiden", "8a
+Schiphol"), goes on the exit's plate, as on the Dutch motorway signs: blue, a white ring, the exit
+pictogram and the number. A Dutch ordinal stays part of the name ("1e Jan Steenstraat", "2de ...").
 
 ![Road number plates](../../docs/screens/nav_card_shields.png)
 
